@@ -25,6 +25,8 @@ Run the file S3Archive.exe once, this will create a default config file and exit
   * `bucket` - The S3 bucket to store in.  Must already be created, currently this is not created for you.
   * `basePath` - a prepended path to the S3 key for the file to allow you to use a single bucket for multiple sources.
   * `pattern` - File search pattern to use across all included directories
+  * `encryption` - Enable SSE with AES256
+  * `minAge` - The minimum age in days for a file to be included.  Useful for log files that need to be read locally first.
 
 
 ##License
