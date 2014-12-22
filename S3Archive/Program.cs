@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Xml.Linq;
 using System.Security.Cryptography;
+using System.Linq;
 
 namespace S3Archive
 {
@@ -28,7 +29,9 @@ namespace S3Archive
                             new XElement("path", "c:\\data\\something"),
                             new XElement("bucket", "my-archive"),
                             new XElement("basePath", "thisfolder/"),
-                            new XElement("pattern", "*.*")
+                            new XElement("pattern", "*.*"),
+                            new XElement("encryption", false),
+                            new XElement("minAge", 0)
                         )
                     )
                 )
@@ -86,7 +89,16 @@ namespace S3Archive
             //Loop folders
             foreach(var folder in config.Element("root").Descendants("folder")) {
                 Console.WriteLine("Reading path: " + folder.Element("path").Value);
-                string[] files = Directory.GetFiles(folder.Element("path").Value, folder.Element("pattern").Value, (Convert.ToBoolean(folder.Attribute("recursive").Value)) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+                string[] files = Directory.GetFiles(
+                    folder.Element("path").Value,
+                    folder.Element("pattern").Value,
+                    (Convert.ToBoolean(folder.Attribute("recursive").Value)) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly
+                );
+                if (Convert.ToInt32(folder.Element("minAge").Value) > 0)
+                {
+                    var fileInfoArray = files.Select(f => new FileInfo(f)).Where(f => f.CreationTime < DateTime.Now.AddDays(-Convert.ToInt32(folder.Element("minAge").Value)));
+                    files = fileInfoArray.Select(f => f.FullName).ToArray();
+                }
                 Console.WriteLine("Found " + files.Length + " files to upload");
 
                 // Loop through selected files
@@ -112,6 +124,9 @@ namespace S3Archive
                             request.BucketName = folder.Element("bucket").Value;
                             //request.Timeout = new TimeSpan(-1);
                             if (Convert.ToBoolean(folder.Element("encryption").Value))
+                            {
+                                request.ServerSideEncryptionMethod = "AES256";
+                            }
                             PutObjectResponse response = S3Client.PutObject(request);
                             string eTag = response.ETag.Replace("\"", "");
                             if (md5Hash == eTag) uploaded = true;
