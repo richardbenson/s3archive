@@ -51,20 +51,23 @@ namespace S3Archive
                 case "eu-west-1":
                     region = RegionEndpoint.EUWest1;
                     break;
+                case "eu-central-1":
+                    region = RegionEndpoint.EUCentral1;
+                    break;
                 case "sa-east-1":
                     region = RegionEndpoint.SAEast1;
                     break;
                 case "us-east-1":
                     region = RegionEndpoint.USEast1;
                     break;
-                case "ap-northeast-1":
-                    region = RegionEndpoint.APNortheast1;
-                    break;
                 case "us-west-2":
                     region = RegionEndpoint.USWest2;
                     break;
                 case "us-west-1":
                     region = RegionEndpoint.USWest1;
+                    break;
+                case "ap-northeast-1":
+                    region = RegionEndpoint.APNortheast1;
                     break;
                 case "ap-southeast-1":
                     region = RegionEndpoint.APSoutheast1;
@@ -78,7 +81,7 @@ namespace S3Archive
             }
 
             //Create a connection to S3
-            AmazonS3 S3Client = AWSClientFactory.CreateAmazonS3Client(AWSKey, AWSSecret, region);
+            IAmazonS3 S3Client = AWSClientFactory.CreateAmazonS3Client(AWSKey, AWSSecret, region);
 
             //Loop folders
             foreach(var folder in config.Element("root").Descendants("folder")) {
@@ -107,9 +110,10 @@ namespace S3Archive
                             request.InputStream = stream;
                             request.Key = S3Path;
                             request.BucketName = folder.Element("bucket").Value;
-                            request.Timeout = -1;
-                            S3Response response = S3Client.PutObject(request);
-                            string eTag = ((PutObjectResponse)response).ETag.Replace("\"", "");
+                            //request.Timeout = new TimeSpan(-1);
+                            if (Convert.ToBoolean(folder.Element("encryption").Value))
+                            PutObjectResponse response = S3Client.PutObject(request);
+                            string eTag = response.ETag.Replace("\"", "");
                             if (md5Hash == eTag) uploaded = true;
                         }
                         if (uploaded)
